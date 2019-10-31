@@ -1,0 +1,13 @@
+server:
+  port: 8081
+vcap:
+  services:
+    gemfire-config:
+      credentials:
+        locator1: ec2-34-209-143-245.us-west-2.compute.amazonaws.com
+        port1: 10334
+        locator2: ec2-34-209-143-245.us-west-2.compute.amazonaws.com
+        port2: 10334
+        securityusername: user
+        securitypassword: pass
+        securityclientauthinit: com.garmin.data.gemfire.UserPasswordAuthInit.create

@@ -1,0 +1,7 @@
+---
+path: build/libs/citi-cache-service-gemfire-0.1.0.jar
+health-check-type: none
+env:
+  DISCOVERY_ENV: CF
+  APP_IDENTIFIER: citi-cache-service-gemfire
+  NUMBER_OF_INSTANCES: 1
