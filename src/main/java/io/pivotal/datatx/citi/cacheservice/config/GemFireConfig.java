@@ -16,6 +16,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import static io.pivotal.datatx.citi.cacheservice.repository.constant.RegionName.*;
@@ -38,6 +46,13 @@ public class GemFireConfig {
 	private String securitypassword;
 	private String securityclientauthinit;
 
+	private String keystoreUrl;
+	private String keystorePassword;
+	private String truststoreUrl;
+	private String truststorePasswrod;
+
+	private String keystoreLocation = "/tmp/gemfire-keystore.jks";
+	private String truststoreLocation = "/tmp/gemfire-truststore.jks";
 
 	@Bean
 	ClientRegionFactory clientRegionFactory() {
@@ -49,14 +64,13 @@ public class GemFireConfig {
 
 		ccf.set("mcast-port", "0");
 		ccf.set("log-level", "trace");
-		ccf.setPoolSubscriptionEnabled(true);
-
 		if (!StringUtils.isEmpty(securityusername)) {
 			ccf.set("security-username", securityusername);
 			ccf.set("security-password", securitypassword);
 			ccf.set("security-client-auth-init", securityclientauthinit);
-
 		}
+		setSSLParams(ccf);
+	//	ccf.setPoolSubscriptionEnabled(true);
 		ccf.addPoolLocator(locator1, Integer.valueOf(port1));
 		if (!StringUtils.isEmpty(locator2)){
 			ccf.addPoolLocator(locator2, Integer.valueOf(port2));
@@ -89,6 +103,52 @@ public class GemFireConfig {
 		return clientRegionFactory.create(SSO);
 	}
 
+	public void setSSLParams(ClientCacheFactory ccf){
+		try {
+			if (!StringUtils.isEmpty(keystoreUrl)) {
+				downloadAndWrite(keystoreUrl, keystoreLocation);
+				downloadAndWrite(truststoreUrl, truststoreLocation);
+				ccf.set("server-ssl-enabled", "true");
+				ccf.set("server-ssl-keystore-type", "jks");
+				ccf.set("server-ssl-keystore", keystoreLocation);
+				ccf.set("server-ssl-keystore-password", keystorePassword);
+				ccf.set("server-ssl-truststore", truststoreLocation);
+				ccf.set("server-ssl-truststore-password", truststorePasswrod);
+			}
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public void downloadAndWrite(String remoteUrl, String localFilePath) throws Exception {
+
+		URL url  = new URL( remoteUrl );
+		HttpURLConnection http = (HttpURLConnection)url.openConnection();
+		Map< String, List< String >> header = http.getHeaderFields();
+		while( isRedirected( header )) {
+			remoteUrl = header.get( "Location" ).get( 0 );
+			url    = new URL( remoteUrl );
+			http   = (HttpURLConnection)url.openConnection();
+			header = http.getHeaderFields();
+		}
+		InputStream input  = http.getInputStream();
+		byte[]       buffer = new byte[4096];
+		int          n      = -1;
+		OutputStream output = new FileOutputStream( new File(localFilePath));
+		while ((n = input.read(buffer)) != -1) {
+			output.write( buffer, 0, n );
+		}
+		output.close();
+	}
+
+	private static boolean isRedirected( Map<String, List<String>> header ) {
+		for( String hv : header.get( null )) {
+			if(   hv.contains( " 301 " )
+					|| hv.contains( " 302 " )) return true;
+		}
+		return false;
+	}
 
 	public String getLocator1() {
 		return locator1;
@@ -160,5 +220,37 @@ public class GemFireConfig {
 
 	public void setSecurityclientauthinit(String securityclientauthinit) {
 		this.securityclientauthinit = securityclientauthinit;
+	}
+
+	public String getKeystoreUrl() {
+		return keystoreUrl;
+	}
+
+	public void setKeystoreUrl(String keystoreUrl) {
+		this.keystoreUrl = keystoreUrl;
+	}
+
+	public String getKeystorePassword() {
+		return keystorePassword;
+	}
+
+	public void setKeystorePassword(String keystorePassword) {
+		this.keystorePassword = keystorePassword;
+	}
+
+	public String getTruststoreUrl() {
+		return truststoreUrl;
+	}
+
+	public void setTruststoreUrl(String truststoreUrl) {
+		this.truststoreUrl = truststoreUrl;
+	}
+
+	public String getTruststorePasswrod() {
+		return truststorePasswrod;
+	}
+
+	public void setTruststorePasswrod(String truststorePasswrod) {
+		this.truststorePasswrod = truststorePasswrod;
 	}
 }

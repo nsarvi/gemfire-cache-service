@@ -21,11 +21,17 @@ public class CacheClientTest {
     private int locatorPort =  10334;
     private ClientCache clientCache;
     private Region<String, String> ssoRegion;
+    static String keystoreLocation = "/tmp/gemfire-keystore.jks";
+    static String truststoreLocation = "/tmp/gemfire-truststore.jks";
+    static String keystoreURL = "https://github.com/nsarvi/gemfire-cache-service/raw/master/src/main/resources/gemfire-keystore.jks";
+    static String truststoreURL = "https://github.com/nsarvi/gemfire-cache-service/raw/master/src/main/resources/gemfire-truststore.jks";
 
     private boolean ssl=true;
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws Exception {
         CacheClientTest test=new CacheClientTest();
+        test.download(keystoreURL, keystoreLocation);
+        test.download(truststoreURL, truststoreLocation);
         test.connectoGemfire();
     }
 
@@ -38,17 +44,18 @@ public class CacheClientTest {
             if (ssl) {
                 ccf.set("server-ssl-enabled", "true");
                 ccf.set("server-ssl-keystore-type", "jks");
-                ccf.set("server-ssl-keystore", "/Users/niranjansarvi/Documents/workspace-gemfire/citi-cache-service-gemfire/src/main/resources/gemfire-keystore.jks");
+                ccf.set("server-ssl-keystore", keystoreLocation);
                 ccf.set("server-ssl-keystore-password", "changeit");
-                ccf.set("server-ssl-truststore", "/Users/niranjansarvi/Documents/workspace-gemfire/citi-cache-service-gemfire/src/main/resources/gemfire-truststore.jks");
+                ccf.set("server-ssl-truststore", truststoreLocation);
                 ccf.set("server-ssl-truststore-password", "changeit");
             }
             ccf.set("name", "CacheClientTest");
+            ccf.set("log-level", "trace");
             ccf.setPoolSubscriptionEnabled(true);
             clientCache = ccf.addPoolLocator(locatorHost, locatorPort).create();
             clientCache = ccf.create();
             ssoRegion = clientCache.<String, String>createClientRegionFactory(ClientRegionShortcut.PROXY).create("SSO");
-            ssoRegion.put("3", "ssl val3");
+            ssoRegion.put("4", "ssl val4");
             System.out.println("---- > ");
         } catch (Exception e) {
             System.out.println("Exception  .....");
@@ -58,25 +65,21 @@ public class CacheClientTest {
 
     }
 
-    public void download( String[] args ) throws Throwable
-    {
-        String link =
-                "http://github.com/downloads/TheHolyWaffle/ChampionHelper/" +
-                        "ChampionHelper-4.jar";
-        String            fileName = "ChampionHelper-4.jar";
-        URL url  = new URL( link );
+    public void download(String remoteUrl, String localFilePath) throws Exception {
+
+        URL url  = new URL( remoteUrl );
         HttpURLConnection http = (HttpURLConnection)url.openConnection();
         Map< String, List< String >> header = http.getHeaderFields();
         while( isRedirected( header )) {
-            link = header.get( "Location" ).get( 0 );
-            url    = new URL( link );
+            remoteUrl = header.get( "Location" ).get( 0 );
+            url    = new URL( remoteUrl );
             http   = (HttpURLConnection)url.openConnection();
             header = http.getHeaderFields();
         }
         InputStream input  = http.getInputStream();
         byte[]       buffer = new byte[4096];
         int          n      = -1;
-        OutputStream output = new FileOutputStream( new File( fileName ));
+        OutputStream output = new FileOutputStream( new File(localFilePath));
         while ((n = input.read(buffer)) != -1) {
             output.write( buffer, 0, n );
         }
